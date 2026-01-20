@@ -1,126 +1,362 @@
+
 <!DOCTYPE html>
-<html lang="ur">
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Smart Walking App</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Video Library</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        body { background-color: #0f172a; padding: 20px; color: white; }
+        
+        .container { max-width: 1000px; margin: 0 auto; }
+        
+        .header { 
+            text-align: center; 
+            padding: 40px 20px; 
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border-radius: 15px;
+            margin-bottom: 30px;
+            border: 1px solid #334155;
+        }
 
-<style>
-body{
-    margin:0;
-    font-family:Arial, sans-serif;
-    background:#0f172a;
-    color:#fff;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    height:100vh;
-}
-.circle{
-    width:220px;
-    height:220px;
-    border-radius:50%;
-    border:10px solid #22c55e;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    font-size:20px;
-    margin-bottom:20px;
-}
-.steps{
-    font-size:36px;
-    font-weight:bold;
-}
-button{
-    padding:12px 25px;
-    font-size:18px;
-    border:none;
-    border-radius:8px;
-    background:#22c55e;
-    color:#000;
-    cursor:pointer;
-}
-.status{
-    margin-top:10px;
-    font-size:14px;
-    color:#94a3b8;
-}
-</style>
+        #linksList { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); 
+            gap: 20px; 
+        }
+
+        .video-card { 
+            background: #1e293b; 
+            border: 1px solid #334155; 
+            border-radius: 12px; 
+            padding: 20px; 
+            text-align: center; 
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .video-card:hover { transform: translateY(-5px); border-color: #38bdf8; }
+
+        .play-area { cursor: pointer; margin-bottom: 15px; }
+
+        .play-icon {
+            width: 50px; height: 50px; background: #38bdf8;
+            border-radius: 50%; display: flex; align-items: center;
+            justify-content: center; margin: 0 auto 10px;
+            font-size: 20px; color: #0f172a;
+        }
+
+        .video-title { font-size: 16px; font-weight: 600; color: #f1f5f9; margin-bottom: 15px; }
+
+        /* Download Button */
+        .download-btn {
+            background: #22c55e;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .download-btn:hover { background: #16a34a; }
+
+        /* Ad Popup Modal */
+        #adModal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: white;
+            z-index: 2000;
+        }
+
+        #adFrame { width: 100%; height: 100%; border: none; }
+
+        #timerOverlay {
+            position: fixed;
+            top: 20px; right: 20px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-weight: bold;
+            z-index: 2001;
+            pointer-events: none;
+        }
+
+        /* Video Player Modal */
+        #videoModal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content { 
+        width: 90%;            /* موبائل پر چوڑائی */
+        max-width: 700px;      /* ڈیسک ٹاپ پر زیادہ سے زیادہ چوڑائی */
+        position: relative; 
+        background: #000;
+        border-radius: 15px;
+        aspect-ratio: 16 / 9;  /* یہ لائن پلیئر کو ہمیشہ ویڈیو کی شکل میں رکھے گی */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        }
+        
+        video { 
+        width: 100%; 
+        height: 100%;          /* ہائٹ کو بھی 100 فیصد کر دیں */
+        object-fit: contain;   /* اس سے ویڈیو کھینچے گی نہیں بلکہ فٹ رہے گی */
+        border-radius: 10px; 
+        }
+        
+        .close-btn {
+            position: absolute; top: -40px; right: 0;
+            background: #ef4444; color: white; border: none;
+            padding: 5px 15px; border-radius: 5px; cursor: pointer;
+        }
+    </style>
 </head>
-
 <body>
 
-<div class="circle">
-    <div>قدم</div>
-    <div class="steps" id="steps">0</div>
-</div>
+    <div class="container">
+        <div class="header">
+            <h1>G Videos</h1>
+            <p>Watch or Download high quality videos</p>
+        </div>
+        <div id="linksList"></div>
+    </div>
 
-<button onclick="startCounter()">START</button>
-<div class="status" id="status">Ready</div>
+    <div id="videoModal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="closePlayer()">CLOSE ✕</button>
+            <video id="mainPlayer" controls controlsList="nodownload"></video>
+        </div>
+    </div>
 
-<script>
-let steps = 0;
-let lastMagnitude = 0;
-let lastStepTime = 0;
-let running = false;
-let speed = 0;
+    <div id="adModal">
+        <div id="timerOverlay">Please wait: <span id="seconds">5</span>s</div>
+        <iframe id="adFrame" src=""></iframe>
+    </div>
 
-function startCounter(){
-    if(running) return;
-    running = true;
-    document.getElementById("status").innerText = "Walking detected...";
-    
-    // Motion Sensor
-    window.addEventListener("devicemotion", motionHandler);
-    
-    // GPS Speed detection
-    if(navigator.geolocation){
-        navigator.geolocation.watchPosition(pos=>{
-            speed = pos.coords.speed || 0; // meters/sec
+    <script>
+        const videoLinks = [
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_175547_249.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_175408_859.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_174625_710.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_175233_906.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID-20221223-WA0002.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_175230_028.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_175232_651.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/received_1047056636310768.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_175458_567.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_175501_722.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_175513_835.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/received_1034087941066151.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_175218_159.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/bf8d15c6543e85da1a741077176317b9.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_174600_560.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_174925_893.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_175215_192.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/1_4929249114245301109.MP4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID-20230204-WA0011.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID-20221223-WA0027.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_175732_376.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_174602_465.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID-20230308-WA0025.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID-20230308-WA0022.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_175416_815.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_175600_158.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/1_4929249114245301108.MP4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_175706_881.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID-20230529-WA0022.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_174753_336.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/0-4.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID-20221029-WA0041.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_174838_079.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID-20221223-WA0021.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID-20230320-WA0051.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_174711_827.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID-20170305-WA0146.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_174730_683.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID-20170312-WA0044.3gp",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_174609_380.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_174646_695.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_174822_294.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_174706_729.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID-20230529-WA0023.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_175604_868.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/527f13121a4d06a593dd9e161298b416.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_174649_171.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_175721_966.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230217_000612_205.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID-20170311-WA0005.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID-20230302-WA0143.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_175936_506.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_175435_792.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230212_100731_482.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID-20170308-WA0068.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_174850_177.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_175653_892.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_175522_072.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID-20191108-WA0459.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_175451_172.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_174937_418.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/1_5154520934899516422.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_174928_136.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/0570b3c0b6e0dd1224c5a05c4ced440e.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_174734_821.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_175452_684.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_174548_202.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/X_P%20Part%207--BabajeekaLink%20(8).mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_175658_965.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID-20170308-WA0065.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID-20230117-WA0002.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID-20230529-WA0018.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/argentina.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/X_P%20Part%207--BabajeekaLink%20(2).mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/4_6048807407386103536.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/sexo%20china.3gp",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/1_4947605301957231315.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID-20230529-WA0028.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID-20230320-WA0060.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID-20230127-WA0002.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230303_083044_060.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID-20221231-WA0011.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID-20191108-WA0270.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID-20221026-WA0025.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID-20230308-WA0018.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/hermano2.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID-20230120-WA0067.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/SughraButt_20230517_1658971709460938754_1_16589715606008258570.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID-20230320-WA0061.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_175910_561.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_175602_673.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/IMG_20250517_181153_7271.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID-20160123-WA0013.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_174715_767.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/116cffd4dd12b81ba58ec51428b1201c.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230303_083208_277.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/1.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_175655_937.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID-20170311-WA0003.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_175332_333.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/4e33fb9ee6fc353c922ec173fb7f4975.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_174920_559.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_174741_564.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID-20230308-WA0017.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_174808_054.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_174809_340.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/98ddd3c82846b3c95e93dcec5a69c09c.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/4902c12383128ccf1cf15b3ea2cd6a97.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/060f1840de3179bdc5cf96c5a94dca1d.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID-20221016-WA0019.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_174847_966.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_175735_185.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_174726_889.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_174930_920.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/8d8569298a88f63cb26ffc4134fe9333.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID-20230108-WA0119.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID_20230216_174829_576.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/0594007581c60b75df52b4dba5f9cc30.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID-20230204-WA0014.mp4",
+            "https://chilgir.sfo3.cdn.digitaloceanspaces.com/VID-20191026-WA0032.mp4",
+        ];
+
+        const adLinks = [
+            "https://www.effectivegatecpm.com/etnvcsg5?key=8cdf22590b8d8a5148ae31d2551bbe25",
+            "https://www.effectivegatecpm.com/trsd2yif?key=abc53a0d90802a614242e97af96fd662",
+            "https://www.effectivegatecpm.com/uz50mzu3f?key=efec633d14ae4a27a4a0aa1aa41c9c7e",
+            "https://www.effectivegatecpm.com/cm2npj3b6n?key=bbdca23bff7d7d54853f830d7c238ddf",
+            "https://www.effectivegatecpm.com/uyz2avfp?key=af05da8c47fc0d441624224a14c722a6",
+            "https://www.effectivegatecpm.com/yz4z5szmf?key=73186bcddd33133e4b3c585292f10bde",
+            "https://www.effectivegatecpm.com/b7gn1rctv?key=a6df49ee2755a88078fad4af6ebd06bf",
+            "https://www.effectivegatecpm.com/dqm7ya0myx?key=976aa4962ea641f87639dfc784b35969",
+            "https://www.effectivegatecpm.com/uck9x0wk6?key=11fca88e86f0d00b67543ac7a783e47f"
+        ];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const container = document.getElementById('linksList');
+
+            videoLinks.forEach((url, index) => {
+                const card = document.createElement('div');
+                card.className = 'video-card';
+                card.innerHTML = `
+                    <div class="play-area" onclick="playVideo('${url}')">
+                        <div class="play-icon">▶</div>
+                        <div class="video-title">Video ${index + 1}</div>
+                    </div>
+                    <button class="download-btn" onclick="startDownloadProcess('${url}')">
+                        📥 Download Now
+                    </button>
+                `;
+                container.appendChild(card);
+            });
         });
-    }
-}
 
-function motionHandler(event){
-    let acc = event.accelerationIncludingGravity;
-    if(!acc) return;
-
-    let magnitude = Math.sqrt(
-        acc.x * acc.x +
-        acc.y * acc.y +
-        acc.z * acc.z
-    );
-
-    let delta = Math.abs(magnitude - lastMagnitude);
-    let now = Date.now();
-
-    // Speed logic
-    let speedKm = speed * 3.6;
-
-    // If speed too high (bike / car) → stop counting
-    if(speedKm > 15){
-        document.getElementById("status").innerText = "Vehicle detected – Steps Paused";
-        return;
-    }
-
-    // Step detection
-    if(delta > 6 && now - lastStepTime > 350){
-        steps++;
-        lastStepTime = now;
-        document.getElementById("steps").innerText = steps;
-
-        if(speedKm > 7){
-            document.getElementById("status").innerText = "Running...";
-        } else {
-            document.getElementById("status").innerText = "Walking...";
+        // Play Video Function
+        function playVideo(url) {
+            const modal = document.getElementById('videoModal');
+            const player = document.getElementById('mainPlayer');
+            player.src = url;
+            modal.style.display = 'flex';
+            player.play();
         }
-    }
 
-    lastMagnitude = magnitude;
-}
-</script>
+        function closePlayer() {
+            const modal = document.getElementById('videoModal');
+            const player = document.getElementById('mainPlayer');
+            modal.style.display = 'none';
+            player.pause();
+            player.src = "";
+        }
 
+        // Ad and Download Logic
+        function startDownloadProcess(videoUrl) {
+            const adModal = document.getElementById('adModal');
+            const adFrame = document.getElementById('adFrame');
+            const secondsSpan = document.getElementById('seconds');
+            
+            // Pick Random Ad
+            const randomAd = adLinks[Math.floor(Math.random() * adLinks.length)];
+            adFrame.src = randomAd;
+            
+            // Show Ad Popup
+            adModal.style.display = 'block';
+            let timeLeft = 15;
+            secondsSpan.innerText = timeLeft;
+
+            const timer = setInterval(() => {
+                timeLeft--;
+                secondsSpan.innerText = timeLeft;
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    adModal.style.display = 'none';
+                    adFrame.src = ""; // Reset frame
+                    triggerDownload(videoUrl); // Start Download
+                }
+            }, 1000);
+        }
+
+        function triggerDownload(url) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = url.split('/').pop();
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+    </script>
 </body>
 </html>
