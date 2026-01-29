@@ -130,7 +130,7 @@ function startAdOnly(callback) {
     const randomAd = adLinks[Math.floor(Math.random() * adLinks.length)];
     adFrame.src = randomAd;
     adModal.style.display = 'block';
-    let timeLeft = 15;
+    let timeLeft = 20;
     secondsSpan.innerText = timeLeft;
 
     const timer = setInterval(() => {
